@@ -15,7 +15,7 @@ import { GoogleSheetAPI } from "./types/externalAPI";
 // maps contiene todos los mapas que tiene el usuario en la DB
 const initialUser: UserType.Info = {
   padron: "",
-  carrera: CARRERAS.find((c) => c.id === "informatica-2020")!,
+  carrera: CARRERAS.find((c) => c.id === "informatica-uade-2021")!,
   orientacion: null,
   finDeCarrera: null,
   allLogins: [],
@@ -100,7 +100,7 @@ const Login = (): UserType.Context => {
       findecarreraid: d.values[0][4],
     }));
 
-    let carrera = CARRERAS.find((c) => c.id === "informatica-2020")!;
+    let carrera = CARRERAS.find((c) => c.id === "informatica-uade-2021")!;
     let orientacion: UserType.Orientacion | undefined = undefined;
     let finDeCarrera: UserType.FinDeCarrera | undefined = undefined;
     for (const login of allLogins) {

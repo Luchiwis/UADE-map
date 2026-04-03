@@ -55,7 +55,7 @@ class Node implements NodeType {
 
     // Lo declaramos especificamente porque sino TypeScript no lo reconoce
     this.categoria = node.categoria;
-    this.creditos = node.creditos;
+    this.creditos = node.creditos ?? 0;
     this.materia = node.materia;
 
     // Si en los JSONs hay un campo valido de vis.js, lo vamos a tomar

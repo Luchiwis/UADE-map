@@ -74,6 +74,8 @@ export namespace GraphType {
     color: string;
     creditosNecesarios: number;
     creditos: number;
+    /** UADE: barras por materias aprobadas vs totales (no créditos). */
+    unidad?: "materias" | "creditos";
     nmaterias?: number;
     totalmaterias?: number;
     proportion?: number;

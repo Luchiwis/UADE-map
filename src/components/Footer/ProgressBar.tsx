@@ -107,7 +107,7 @@ const ProgressBar = () => {
                       {c.creditos}
                       {!!c.creditosNecesarios &&
                         ` de ${c.creditosNecesarios} `}{" "}
-                      créditos
+                      {c.unidad === "materias" ? "materias" : "créditos"}
                     </StatNumber>
                   )}
                   {!!c.nmaterias && (

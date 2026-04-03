@@ -35,12 +35,12 @@ export namespace UserType {
   export interface MateriaJSON {
     id: string;
     materia: string;
-    creditos: number;
+    creditos?: number;
     categoria: string;
     level: number;
     correlativas: string | undefined;
-    requiere: number | undefined;
-    requiereCBC: boolean | undefined;
+    requiere?: number;
+    requiereCBC?: boolean;
   }
 
   export interface Electivas {
@@ -67,7 +67,8 @@ export namespace UserType {
     ano: number;
     beta?: boolean;
     graph: MateriaJSON[];
-    creditos: Creditos;
+    /** Si no se define (planes UADE), el progreso se muestra por cantidad de materias. */
+    creditos?: Creditos;
     eligeOrientaciones?: true;
     orientaciones?: Orientacion[];
     finDeCarrera?: FinDeCarrera[];

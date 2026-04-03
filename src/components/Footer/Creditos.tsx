@@ -45,6 +45,8 @@ const Creditos = () => {
 
   const electivasColor = useColorModeValue("electivas.600", "electivas.400");
 
+  const modoUade = user.carrera.creditos === undefined;
+
   const creditosTotales = React.useMemo(() => {
     return creditos.reduce((acc, c) => {
       if (c.checkbox) return acc;
@@ -52,19 +54,18 @@ const Creditos = () => {
     }, 0);
   }, [creditos]);
 
+  const etiquetaPrincipal = modoUade ? "Materias" : "Créditos";
+
   const creditosOptativas = React.useMemo(() => {
     return optativas.reduce((acc, o) => acc + o.creditos, 0);
   }, [optativas]);
 
   const creditosTotalesNecesarios = React.useMemo(() => {
-    // TODO: En un mundo ideal esto no esta hardcodeado y se computa
-    // pero cada carrera es tan distinta que esto se hace imposible
-    // con la estructura actual de carreras.ts
-    // Ademas... no tengo forma de obtener los creditos del fin de carrera
-    // de un usuario que no lo configuro, porque el nodo no esta presente en
-    // el grafo
-    return user.carrera.creditos.total;
-  }, [user.carrera]);
+    if (modoUade) {
+      return creditos.reduce((acc, c) => acc + c.creditosNecesarios, 0);
+    }
+    return user.carrera.creditos!.total;
+  }, [user.carrera, modoUade, creditos]);
 
   const handleEditOptativa = (id: number, nombre: string, creditos: number) => {
     optativasDispatch({
@@ -72,6 +73,49 @@ const Creditos = () => {
       value: { id, nombre, creditos },
     });
   };
+
+  const statInner = (
+    <Stat p="0.4em" color="white" size="sm">
+      <StatLabel>
+        {etiquetaPrincipal}
+        {!modoUade && (
+          <Tooltip
+            placement="right"
+            hasArrow
+            label="Agregar créditos de optativas"
+          >
+            <PlusSquareIcon
+              ml={1}
+              boxSize={4}
+              color="electivas.400"
+              cursor="pointer"
+              onClick={() => {
+                optativasDispatch({ action: "create" });
+              }}
+            />
+          </Tooltip>
+        )}
+      </StatLabel>
+      <StatNumber>
+        {creditosTotales + " de " + creditosTotalesNecesarios}
+        <Hide ssr={false} below="md">
+          <LightMode>
+            <Badge ml={2} colorScheme="green" variant="solid">
+              {Math.round(
+                (creditosTotales / creditosTotalesNecesarios) * 100,
+              ) + "%"}
+            </Badge>
+          </LightMode>
+        </Hide>
+      </StatNumber>
+    </Stat>
+  );
+
+  if (modoUade) {
+    return (
+      <Box w={{ base: "12ch", md: "16ch" }}>{statInner}</Box>
+    );
+  }
 
   return (
     <Box>
@@ -83,40 +127,7 @@ const Creditos = () => {
         onClose={() => setIsOpen(false)}
       >
         <PopoverTrigger>
-          <Box w={{ base: "12ch", md: "16ch" }}>
-            <Stat p="0.4em" color="white" size="sm">
-              <StatLabel>
-                Créditos
-                <Tooltip
-                  placement="right"
-                  hasArrow
-                  label="Agregar créditos de optativas"
-                >
-                  <PlusSquareIcon
-                    ml={1}
-                    boxSize={4}
-                    color="electivas.400"
-                    cursor="pointer"
-                    onClick={() => {
-                      optativasDispatch({ action: "create" });
-                    }}
-                  />
-                </Tooltip>
-              </StatLabel>
-              <StatNumber>
-                {creditosTotales + " de " + creditosTotalesNecesarios}
-                <Hide ssr={false} below="md">
-                  <LightMode>
-                    <Badge ml={2} colorScheme="green" variant="solid">
-                      {Math.round(
-                        (creditosTotales / creditosTotalesNecesarios) * 100,
-                      ) + "%"}
-                    </Badge>
-                  </LightMode>
-                </Hide>
-              </StatNumber>
-            </Stat>
-          </Box>
+          <Box w={{ base: "12ch", md: "16ch" }}>{statInner}</Box>
         </PopoverTrigger>
         <PopoverContent borderColor="electivas.500" width="fit-content">
           <PopoverArrow bg="electivas.500" />
