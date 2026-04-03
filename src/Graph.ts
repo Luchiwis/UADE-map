@@ -148,6 +148,7 @@ const Graph = (userContext: UserType.Context): GraphType.Context => {
     // test: entrar y clickear un nodo rapido, y esperar a que el usuario se loguee solo
     setDisplayedNode("");
     const nodes = user.carrera.graph.map((n) => new Node(n));
+    const hasCbcNode = user.carrera.graph.some((x) => x.id === "CBC");
     const edges = user.carrera.graph.flatMap((n) => {
       let e = [];
       if (n.correlativas)
@@ -158,7 +159,8 @@ const Graph = (userContext: UserType.Context): GraphType.Context => {
             smooth: { enabled: true, type: "curvedCW", roundness: 0.1 },
           });
         });
-      if (n.requiere) e.push({ from: "CBC", to: n.id, color: "transparent" });
+      if (n.requiere && hasCbcNode)
+        e.push({ from: "CBC", to: n.id, color: "transparent" });
       return e;
     });
 
@@ -224,7 +226,7 @@ const Graph = (userContext: UserType.Context): GraphType.Context => {
     } else {
       // Si no tengo mapa en la DB (porque me desloguee, o porque soy un usuario nuevo en esta carrera),
       //   reseteo absolutamente todo y solamente apruebo el CBC
-      user.carrera.creditos.checkbox?.forEach((ch) => (ch.check = false));
+      user.carrera.creditos?.checkbox?.forEach((ch) => (ch.check = false));
       optativasDispatch({ action: "override", value: [] });
       setAplazos(0);
       nodes.update(
@@ -232,7 +234,8 @@ const Graph = (userContext: UserType.Context): GraphType.Context => {
           .ALL()
           .map((n) => getNode(n.id).desaprobar().cursando(undefined)),
       );
-      aprobar("CBC", 0);
+      if (getNode("CBC")) aprobar("CBC", 0);
+      else actualizar();
       actualizarNiveles();
       network.fit();
     }
@@ -357,7 +360,7 @@ const Graph = (userContext: UserType.Context): GraphType.Context => {
       filter: (n) => n.aprobada || n.nota === -1 || n.cuatrimestre,
       fields: ["id", "nota", "cuatrimestre"],
     });
-    const checkboxes = user.carrera.creditos.checkbox
+    const checkboxes = user.carrera.creditos?.checkbox
       ?.filter((c) => c.check === true)
       .map((c) => c.nombre);
     return saveUserGraph(user, materias, checkboxes, optativas, aplazos);
@@ -440,7 +443,7 @@ const Graph = (userContext: UserType.Context): GraphType.Context => {
   };
 
   const toggleCheckbox = (c: string, forceTrue = false) => {
-    if (!user.carrera.creditos.checkbox) {
+    if (!user.carrera.creditos?.checkbox) {
       return;
     }
     const checkbox = user.carrera.creditos.checkbox.find(
@@ -641,16 +644,71 @@ const Graph = (userContext: UserType.Context): GraphType.Context => {
     if (!network || graph.key !== network.key) return [];
     let creditos: GraphType.Credito[] = [];
 
+    if (!user.carrera.creditos) {
+      const oblig = getters.Obligatorias();
+      const oblAprob = getters.ObligatoriasAprobadas();
+      const elec = getters.Electivas();
+      const elecAprob = getters.ElectivasAprobadas();
+      const fin = getters.FinDeCarrera();
+      const finAprob = fin.filter((n) => n.aprobada);
+      creditos.push({
+        ...CREDITOS["Obligatorias"],
+        nombre: "Materias obligatorias",
+        creditosNecesarios: oblig.length,
+        creditos: oblAprob.length,
+        nmaterias: oblAprob.length,
+        totalmaterias: oblig.length,
+        unidad: "materias",
+      });
+      creditos.push({
+        ...CREDITOS["Electivas"],
+        nombre: "Materias electivas",
+        creditosNecesarios: elec.length,
+        creditos: elecAprob.length,
+        nmaterias: elecAprob.length,
+        totalmaterias: elec.length,
+        unidad: "materias",
+      });
+      creditos.push({
+        ...CREDITOS["Fin de Carrera"],
+        nombre: "Cierre de carrera",
+        nombrecorto: "Final",
+        creditosNecesarios: fin.length,
+        creditos: finAprob.length,
+        nmaterias: finAprob.length,
+        totalmaterias: fin.length,
+        unidad: "materias",
+      });
+      const totalNecesarios = creditos.reduce(accCreditosNecesarios, 0);
+      creditos.forEach((c) => {
+        c.proportion =
+          Math.round((c.creditosNecesarios / totalNecesarios) * 10) || 1;
+      });
+      const fullProportion = creditos.reduce(accProportion, 0);
+      const pivot = creditos.length > 1 ? 1 : 0;
+      const pivotCred = creditos[pivot];
+      if (pivotCred?.proportion) {
+        if (fullProportion > 10)
+          pivotCred.proportion -= fullProportion - 10;
+        else if (fullProportion < 10)
+          pivotCred.proportion += 10 - fullProportion;
+      }
+      setCreditos(creditos);
+      return;
+    }
+
+    const crPlan = user.carrera.creditos!;
+
     // La estructura de las carreras varia bastante
     // Por ej: algunas carreras dicen que si elegis X orientacion, tenes que hacer otra cantidad de creditos de electivas
     const getCorrectCreditos = () => {
       if (
         user.carrera.eligeOrientaciones &&
         user.orientacion &&
-        user.carrera.creditos.orientacion
+        crPlan.orientacion
       )
-        return user.carrera.creditos.orientacion[user.orientacion.nombre];
-      return user.carrera.creditos;
+        return crPlan.orientacion[user.orientacion.nombre];
+      return crPlan;
     };
 
     // Retorna los creditos de las electivas, que por defecto son 0 si la carrera no tiene electivas
@@ -708,10 +766,10 @@ const Graph = (userContext: UserType.Context): GraphType.Context => {
 
     // Despues, orientacion obligatoria (si hay)
     const orientacion = getters.OrientacionAprobadas();
-    if (user.carrera.eligeOrientaciones && user.carrera.creditos.orientacion)
+    if (user.carrera.eligeOrientaciones && crPlan.orientacion)
       if (
         user.orientacion &&
-        user.carrera.creditos.orientacion[user.orientacion?.nombre]
+        crPlan.orientacion[user.orientacion?.nombre]
       ) {
         creditos.push({
           nombre: `Orientación: ${user.orientacion.nombre}`,
@@ -739,8 +797,8 @@ const Graph = (userContext: UserType.Context): GraphType.Context => {
     // aca le setupeamos que tiene 8 creditos para llenar, para tener una barra de progreso
     // pero estos creditos que le pusimos no son reales.
     // Siempre que hay que obtener el numero de creditos que tenemos, hay que sacar los por checkbox: true
-    if (user.carrera.creditos.checkbox) {
-      user.carrera.creditos.checkbox.forEach((m) => {
+    if (crPlan.checkbox) {
+      crPlan.checkbox.forEach((m) => {
         creditos.push({
           nombre: m.nombre,
           nombrecorto: m.nombrecorto,
@@ -760,8 +818,8 @@ const Graph = (userContext: UserType.Context): GraphType.Context => {
     // OJO: si el día de mañana se quisiese dar un lugar especial a X materia,
     //  por ejemplo: aprobar la materia electiva ingles cuenta como aprobar el examen de ingles
     //  habria que asegurarse de que sus creditos no se doble cuenten en el total
-    if (user.carrera.creditos.materias)
-      user.carrera.creditos.materias.forEach((m) => {
+    if (crPlan.materias)
+      crPlan.materias.forEach((m) => {
         const node = getNode(m.id);
         creditos.push({
           nombre: node.materia,
