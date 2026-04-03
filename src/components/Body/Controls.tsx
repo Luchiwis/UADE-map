@@ -34,11 +34,11 @@ const Controls = () => {
           )}
         </Link>
       </Tooltip>
-      <Tooltip placement="top" label="FIUBA-Plan">
+      <Tooltip placement="top" label="WebCampus · Correlativas">
         <Link
           isExternal
           color={useColorModeValue("text", "textdark")}
-          href="https://fede.dm/FIUBA-Plan/"
+          href="https://www.webcampus.uade.edu.ar/Contenidos/CorrelativasMaterias.aspx?IdCarrera=1621&IdFacultad=1"
         >
           <Icon
             boxSize={{ base: 4, md: 5 }}
@@ -52,7 +52,7 @@ const Controls = () => {
           </Icon>
         </Link>
       </Tooltip>
-      <Tooltip placement="top" label="FdelMazo/FIUBA-Map">
+      <Tooltip placement="top" label="FIUBA-Map (proyecto original)">
         <Link isExternal href="https://github.com/fdelmazo/FIUBA-Map">
           <Icon
             boxSize={{ base: 4, md: 5 }}
